@@ -67,14 +67,16 @@ res_targets = torch.tensor([120, 110, 120, 110, 120, 120, 110, 120, 110, 110, 12
         110, 120, 110, 120])
 
 
-loss = nn.CrossEntropyLoss()
-input = torch.randn(3, 5, requires_grad=True)
-print(f'input {input}')
-target = torch.empty(3, dtype=torch.long).random_(5)
-print(f'target {target.size} {target}')
+# loss = nn.CrossEntropyLoss()
+# input = torch.randn(3, 5, requires_grad=True)
+# print(f'input {input}')
+# target = torch.empty(3, dtype=torch.long).random_(5)
+# print(f'target {target.size} {target}')
 
-output = loss(input, target)
-print(f'output {output}')
+# output = loss(input, target)
+# print(f'output {output}')
 
 
-print([i for i in range(30, 121, 10)])
+# print([i for i in range(30, 121, 10)])
+
+x = [0.21875, 0.28515625, 0.2734375, 0.22265625, 0.234375, 0.31640625, 0.34375, 0.20703125, 0.28515625, 0.2890625, 0.25390625, 0.265625, 0.18359375, 0.28125, 0.21875, 0.2265625, 0.296875, 0.28125, 0.26171875, 0.265625, 0.2265625, 0.19140625, 0.32421875]

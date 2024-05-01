@@ -24,10 +24,10 @@ from utils import *
 # regressin, learn the curves
 # https://docs.google.com/presentation/d/16yqaaq5zDZ5-S4394VLBUfxpNjM7nlpssqcShFkklec/edit#slide=id.g2c751bc0d9c_0_18
 
-BASE = 'C:/Users/15142/Desktop/data/VRR-classification'
-data_dir = f"{BASE}/seg_train/seg_train/"
-test_data_dir = f"{BASE}/seg_test/seg_test"
-MLDIR = f'C:/Users/15142/Desktop/VRR/VRRML'
+# BASE = 'C:/RFL/data/VRR-classification'
+# data_dir = f"{BASE}/seg_train/seg_train/"
+# test_data_dir = f"{BASE}/seg_test/seg_test"
+# MLDIR = f'C:/Users/15142/Desktop/VRR/VRRML'
 
 
 def display_img(img,label):
@@ -123,11 +123,13 @@ class ImageClassificationBase(nn.Module):
         batch_res_accs = [x['res_acc'] for x in outputs]
         batch_fps_accs = [x['fps_acc'] for x in outputs]
         batch_both_accs = [x['both_acc'] for x in outputs]
-        # print(f'batch_accs \n {batch_accs}')
+        # print(f'batch_res_accs  {torch.is_tensor(batch_res_accs)} \n {batch_res_accs}')
 
-        epoch_res_acc = torch.stack(batch_res_accs).mean() # Combine accuracies
-        epoch_fps_acc = torch.stack(batch_fps_accs).mean()
-        epoch_both_acc = torch.stack(batch_both_accs).mean()
+        epoch_res_acc = torch.mean(torch.tensor(batch_res_accs)) # Combine accuracies
+        epoch_fps_acc = torch.mean(torch.tensor(batch_fps_accs)) # Combine accuracies
+        epoch_both_acc = torch.mean(torch.tensor(batch_both_accs)) # Combine accuracies
+        # epoch_fps_acc = torch.stack(batch_fps_accs).mean()
+        # epoch_both_acc = torch.stack(batch_both_accs).mean()
         return {'val_loss': epoch_loss.item(), 'val_res_acc': epoch_res_acc.item(), \
                 'val_fps_acc': epoch_fps_acc.item(), 'val_both_acc': epoch_both_acc.item()}
     
@@ -277,7 +279,7 @@ def fit(epochs, lr, model, train_loader, val_loader, save_path, opt_func = torch
         # requests an iterator from DeviceDataLoader, i.e. __iter__ function
         for batch in train_loader: # batch is a dictionary with 32 images information, e.g. 'fps': [70, 80, ..., 150]
             # print(f'batch {batch[fps]}')
-            print(f'=============== batch {count} ===============') # train_size / batch_size
+            # print(f'=============== batch {count} ===============') # train_size / batch_size
             count += 1
             # fps= batch['fps']
             # print(f"Input batch shape: {images.size()}")
@@ -307,19 +309,19 @@ def fit(epochs, lr, model, train_loader, val_loader, save_path, opt_func = torch
 # input image 64x64
 # learn JOD valules for different fps and bitrate
 if __name__ == "__main__":
-    data_directory = 'C:/Users/15142/Desktop/data/VRR-video-classification/'
+    data_directory = 'C:/RFL/data/VRR-video-classification'
     # data_directory = 'C:/Users/15142/Desktop/data/VRR-classification/'
     data_train_directory = f'{data_directory}/train_4to7mbps/train' 
     data_test_directory = f'{data_directory}/test_4to7mbps/test'
-    SAVE_MODEL = False
+    SAVE_MODEL = True
     SAVE_MODEL_HALF_WAY = False
-    START_TRAINIGN = False
+    START_TRAINIGN = True
     TEST_EVAL = False
     PLOT_TEST_RESULT = False
     SAVE_PLOT = True
     TEST_SINGLE_IMG = False
 
-    num_epochs = 1
+    num_epochs = 60
     lr = 0.001
     opt_func = torch.optim.SGD
     batch_size = 128
@@ -370,20 +372,18 @@ if __name__ == "__main__":
             val_dl = DeviceDataLoader(val_dl, device)
             to_device(model, device)
 
-            
-        # fitting the model on training data and record the result after each epoch
-        history = fit(num_epochs, lr, model, train_dl, val_dl, MLDIR, opt_func, SAVE=SAVE_MODEL_HALF_WAY)
-        
+           
         now = datetime.now()
         dir_pth = now.strftime("%Y-%m-%d")
         os.makedirs(dir_pth, exist_ok=True)
         hrmin = now.strftime("%H_%M")
-
-        # torch.save(model, f'{save_path}/model.pth')
-        # torch.save(model.state_dict(), f'{MLDIR}/classification.pth')
+        model_path = os.path.join(dir_pth, hrmin)
+        os.makedirs(model_path, exist_ok=True) 
+        # fitting the model on training data and record the result after each epoch
+        history = fit(num_epochs, lr, model, train_dl, val_dl, model_path, opt_func, SAVE=SAVE_MODEL_HALF_WAY)
 
         if SAVE_MODEL:
-            torch.save(model.state_dict(), f'{dir_pth}/{hrmin}_cnn_regression.pth')
+            torch.save(model.state_dict(), f'{model_path}/cnn_regression.pth')
 
     if TEST_EVAL:
         model = NaturalSceneClassification()
