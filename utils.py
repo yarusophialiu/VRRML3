@@ -1,6 +1,7 @@
 import os 
 import torch
 import torchvision
+import seaborn as sns
 import matplotlib.pyplot as plt
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
@@ -99,19 +100,46 @@ def load_checkpoint(model, optimizer, load_path):
     return model, optimizer, epoch
 
 
+
+def plot_accuracy_curve(accuracies):
+
+    plt.figure(figsize=(10, 5))
+    sns.lineplot(x=range(len(accuracies)), y=accuracies, marker='o', label='Accuracy')
+
+    plt.title("Accuracy Curve Over Time")
+    plt.xlabel("Epochs / Iterations")
+    plt.ylabel("Accuracy (%)")
+    plt.legend()
+    plt.show()
+
+
+    
 def compute_accuracy(fps_out, res_out, fps_targets, res_targets):
-        res_pred = torch.argmax(res_out, dim=1)
-        fps_pred = torch.argmax(fps_out, dim=1)
+        # print(f'fps_out \n {}')
+        _, fps_preds = torch.max(fps_out, dim=1)
+        # print(f'fps_preds \n {fps_preds}')
+        _, res_preds = torch.max(res_out, dim=1)
+        print(f'res_out \n {res_out}')
+        print(f'res_preds \n {res_preds}')
 
-        res_correct = (res_pred == res_targets).sum().item()
-        fps_correct = (fps_pred == fps_targets).sum().item()
-        both_correct = ((res_pred == res_targets) & (fps_pred == fps_targets)).sum().item()
+        framerate_accuracy = torch.tensor(torch.sum(fps_preds == fps_targets).item() / len(fps_targets))
+        resolution_accuracy = torch.tensor(torch.sum(res_preds == res_targets).item() / len(res_targets))
 
-        total_samples = len(res_targets)
+        both_correct_accuracy = torch.tensor(torch.sum((res_preds == res_targets) & (fps_preds == fps_targets)).item() / len(res_targets))
 
-        resolution_accuracy = res_correct / total_samples
-        framerate_accuracy = fps_correct / total_samples
-        both_correct_accuracy = both_correct / total_samples
+  
+        # res_pred = torch.argmax(res_out, dim=1)
+        # fps_pred = torch.argmax(fps_out, dim=1)
+
+        # res_correct = (res_pred == res_targets).sum().item()
+        # fps_correct = (fps_pred == fps_targets).sum().item()
+        # both_correct = ((res_pred == res_targets) & (fps_pred == fps_targets)).sum().item()
+
+        # total_samples = len(res_targets)
+
+        # resolution_accuracy = res_correct / total_samples
+        # framerate_accuracy = fps_correct / total_samples
+        # both_correct_accuracy = both_correct / total_samples
         return framerate_accuracy, resolution_accuracy, both_correct_accuracy
 
 def plot_test_result(test_dl, predictions, epoch="", SAVE_PLOT=False):
