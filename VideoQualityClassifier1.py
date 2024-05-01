@@ -82,6 +82,7 @@ class ImageClassificationBase(nn.Module):
         return total_loss
     
     def validation_step(self, batch):
+        print(f'\n\n\n validation step')
         images = batch["image"]
         # labels = batch["label"]
         fps = batch["fps"]
@@ -94,11 +95,11 @@ class ImageClassificationBase(nn.Module):
         fps_targets = batch["fps_targets"]
         res_out, fps_out = self(images, fps, bitrate, resolution, velocity)  # NaturalSceneClassification.forward
         # print(f'training_step out {out.size()} \n {out.squeeze()}')
-        # print(f'labels out {labels}')
-        loss_fn_res = nn.CrossEntropyLoss()
-        loss_fn_fps = nn.CrossEntropyLoss()
-        loss_res = loss_fn_res(res_out, res_targets)
-        loss_fps = loss_fn_fps(fps_out, fps_targets)
+        print(f'res_targets {res_targets}')
+        # loss_fn_res = nn.CrossEntropyLoss()
+        # loss_fn_fps = nn.CrossEntropyLoss()
+        loss_res = F.cross_entropy(res_out, res_targets)
+        loss_fps = F.cross_entropy(fps_out, fps_targets)
 
         total_loss = loss_res + loss_fps
 
@@ -247,10 +248,8 @@ def evaluate_test_data(model, test_loader):
             res_out, fps_out = model(images, fps, bitrate, resolution, velocity)  # NaturalSceneClassification.forward
             # print(f'training_step out {out.size()} \n {out.squeeze()}')
             # print(f'labels out {labels}')
-            loss_fn_res = nn.CrossEntropyLoss()
-            loss_fn_fps = nn.CrossEntropyLoss()
-            loss_res = loss_fn_res(res_out, res_targets)
-            loss_fps = loss_fn_fps(fps_out, fps_targets)
+            loss_res = F.cross_entropy(res_out, res_targets)
+            loss_fps = F.cross_entropy(fps_out, fps_targets)
 
             total_loss = loss_res + loss_fps
 
@@ -264,6 +263,8 @@ def evaluate_test_data(model, test_loader):
 def fit(epochs, lr, model, train_loader, val_loader, save_path, opt_func = torch.optim.SGD, SAVE=False):
     
     history = []
+    train_accuracies = []
+    val_accuracies = []
     optimizer = opt_func(model.parameters(),lr)
 
     # an epoch is one pass through the entire dataset
@@ -282,8 +283,10 @@ def fit(epochs, lr, model, train_loader, val_loader, save_path, opt_func = torch
             # fps= batch['fps']
             # print(f"Input batch shape: {images.size()}")
             # print(f"fps batch shape: {fps.size()}")
+            # get accuracy
             loss = model.training_step(batch) # model
             train_losses.append(loss)
+
             # computes the gradient of the loss with respect to the model parameters
             # part of the backpropagation algorithm, which is how the neural network learns
             loss.backward()  
