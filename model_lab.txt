@@ -1,0 +1,88 @@
+this is to record the performance of each models trained in the lab's computer
+
+# model1 
+input: decoded only, ref, resolution, bitrate, velocity, the decoded frame is not enlarged
+output: fps and resolution
+validation performance: val_res_acc: 0.7734, val_fps_acc: 0.5565, val_both_acc: 0.5565
+test performance: {'val_loss': tensor(1.5941, device='cuda:0'), 'res_acc': tensor(0.7779), 'fps_acc': tensor(0.5556), 'both_acc': tensor(0.5556)}
+notes: changed optimizer from sgd to adam
+saved model: 2024-05-05/16_03/classification_dec_adam.pth
+concern: 
+generalization to new scene: ？
+    for fast speed
+    for normal/slow speed
+    for mix speed
+Train/Test data
+total data 50874, batch_size 128
+train_size 43322, val_size 7552, test_size 8976      
+Train dataset fps labels are: 
+[1080, 1080, 720, 720, 864, 864]
+Train dataset res labels are: 
+[110, 120, 70, 90, 110, 120]
+
+
+
+
+# model2 
+input: decoded only, ref, resolution, bitrate, velocity
+output: fps and resolution
+validation performance: val_res_acc: 0.7734, val_fps_acc: 0.5565, val_both_acc: 0.5565
+test performance: {'val_loss': tensor(1.5941, device='cuda:0'), 'res_acc': tensor(0.7779), 'fps_acc': tensor(0.5556), 'both_acc': tensor(0.5556)}
+notes: changed optimizer from sgd to adam, same as model1, but no velocity
+saved model: 2024-05-05/16_53/classification_dec_adam.pth
+concern: 
+generalization to new scene: ？
+    for fast speed
+    for normal/slow speed
+    for mix speed
+Train/Test data
+total data 50874, batch_size 128
+train_size 43322, val_size 7552, test_size 8976      
+Train dataset fps labels are: 
+[1080, 1080, 720, 720, 864, 864]
+Train dataset res labels are: 
+[110, 120, 70, 90, 110, 120]
+
+
+
+# model3
+input: decoded and reference, ref, bitrate
+output: fps and resolution
+validation performance: 100% accuracy
+test performance: {'val_loss': tensor(2.3661, device='cuda:0'), 'res_acc': tensor(1.), 'fps_acc': tensor(1.), 'both_acc': tensor(1.)}
+notes: changed optimizer from sgd to adam
+saved model: 2024-05-05/18_05/classification_dec_ref_adam.pth
+concern: only remembers the relationship between bitrate and targets
+generalization to new scene:
+    for fast speed: {'val_loss': tensor(3.6734, device='cuda:0'), 'res_acc': tensor(0.6667), 'fps_acc': tensor(0.), 'both_acc': tensor(0.)}
+    for normal/slow speed
+    for mix speed
+Train/Test data
+total data 27592, batch_size 128
+train_size 23496, val_size 4096, test_size 4868
+Train/Test dataset fps labels are: 
+[1080, 720, 720, 864]
+Train/Test dataset res labels are: 
+[110, 70, 90, 120]
+
+
+
+# model4
+input: enlarged decoded only, ref, bitrate
+output: fps and resolution
+validation performance: 100% accuracy
+test performance: {'val_loss': tensor(2.3660, device='cuda:0'), 'res_acc': tensor(1.), 'fps_acc': tensor(1.), 'both_acc': tensor(1.)}
+notes: changed optimizer from sgd to adam
+saved model: 2024-05-05/19_50/classification_enlarged_decoded.pth
+concern: only remembers the relationship between bitrate and targets
+generalization to new scene:
+    for fast speed: 
+    for normal/slow speed
+    for mix speed
+Train/Test data
+total data 27592, batch_size 128
+train_size 23496, val_size 4096, test_size 4868
+Train/Test dataset fps labels are: 
+[1080, 720, 720, 864]
+Train/Test dataset res labels are: 
+[110, 70, 90, 120]
