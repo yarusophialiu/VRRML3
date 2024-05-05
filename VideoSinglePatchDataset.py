@@ -35,12 +35,15 @@ class CustomTransform:
         # # print(f'\n\n\npatches \n {patches}')
         # patches = torch.cat(patches, dim=0)
         # print(f'patches {patches.size()} \n {patches}')
-        return left_half if self.TYPE == 'decoded' else right_half
+        if self.TYPE == 'decoded': 
+            return left_half 
+        if self.TYPE == 'reference':
+            return right_half
     
 
 # dataset: handling batching, shuffling, and iterations over the dataset during training or inference
 class VideoSinglePatchDataset(Dataset):
-    def __init__(self, directory, patch_size=((64, 64))):
+    def __init__(self, directory, TYPE, patch_size=((64, 64))):
         self.root_directory = directory
         self.patch_size = patch_size
         self.samples = []  # To store tuples of (image path, label)
@@ -52,7 +55,7 @@ class VideoSinglePatchDataset(Dataset):
         # print(f'self.res_targets {self.res_targets}')
         # self.transform = CustomTransform(patch_size, TYPE='reference') 
         self.transform = transforms.Compose([
-                    CustomTransform(patch_size, TYPE='reference') ,
+                    CustomTransform(patch_size, TYPE) ,
                     transforms.Resize((64, 64)),  # Resize images to 64x64
                     transforms.ToTensor(),  # Convert images to PyTorch tensors
                 ])

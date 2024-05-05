@@ -39,6 +39,7 @@ fps_out = torch.tensor([[2.0797e-25, 8.9059e-25, 5.2397e-25, 9.2256e-25, 9.9996e
 fps_targets = [i for i in range(30, 81, 10)]
 fps_softmax = torch.argmax(fps_out, dim=1)
 
+
 fps_values = [fps_targets[idx] for idx in fps_softmax]
 fps_values = torch.tensor(fps_values)
 
@@ -47,4 +48,3 @@ print(torch.unique(fps_values))
 # print(f'{fps_targets}')
 # print(f'{fps_softmax}')
 # print(f'{fps_targets[fps_softmax]}')
-
