@@ -1,0 +1,26 @@
+this is to record the performance of each models
+
+# model1 
+input: reference only, ref, resolution, bitrate
+output: fps and resolution
+validation performance: 100% accuracy
+test performance: 100% accuracy
+notes: changed optimizer from sgd to adam
+saved model: 2024-05-05/14_26/classification_ref_adam.pth
+concern: only remembers the relationship between bitrate and targets
+generalization to new scene: ？
+    for fast speed
+    for normal/slow speed
+    for mix speed
+Train/Test data
+total data 27592, batch_size 128
+train_size 23496, val_size 4096, test_size 4868
+Train/Test dataset fps labels are: 
+[1080, 720, 720, 864]
+Train/Test dataset res labels are: 
+[110, 70, 90, 120]
+
+
+
+
+
