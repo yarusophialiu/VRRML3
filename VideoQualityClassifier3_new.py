@@ -214,6 +214,15 @@ def evaluate_test_data(model, test_loader):
         
             print(f'bitrate \n {bitrate}')
 
+            # arr = [30, 30, 30, 40, 40, 50, 50, 50]
+            # tensor = torch.tensor(arr)
+            unique_indices = {}
+
+            # Iterate over the tensor and populate the dictionary
+            for index, value in enumerate(bitrate.tolist()):
+                if value not in unique_indices:
+                    unique_indices[value] = index
+
             # TODO: convert labels into res_targets, fps_targets 
             res_targets = batch["res_targets"]
             fps_targets = batch["fps_targets"]
@@ -234,7 +243,8 @@ def evaluate_test_data(model, test_loader):
 
 
             return {'val_loss': total_loss.detach(), 'res_acc': resolution_accuracy, 'fps_acc': framerate_accuracy, \
-                    'both_acc': both_correct_accuracy}, res_out, fps_out, res_targets, fps_targets, res_values, fps_values
+                    'both_acc': both_correct_accuracy}, res_out, fps_out, res_targets, fps_targets, \
+                        res_values, fps_values, unique_indices
 
 
 def fit(epochs, lr, model, train_loader, val_loader, save_path, opt_func, SAVE=False):
@@ -309,8 +319,8 @@ if __name__ == "__main__":
     num_framerates, num_resolutions = 10, 5
 
     # step1 load data
-    dataset = VideoSinglePatchDataset(directory=data_train_directory) # len 27592
-    test_dataset = VideoSinglePatchDataset(directory=data_test_directory) 
+    dataset = VideoSinglePatchDataset(directory=data_train_directory, TYPE='reference') # len 27592
+    test_dataset = VideoSinglePatchDataset(directory=data_test_directory, TYPE='reference') 
     train_size = len(dataset) - val_size 
     print(f'total data {len(dataset)}, batch_size {batch_size}')
     print(f'train_size {train_size}, val_size {val_size}, test_size {len(test_dataset)}\n')
@@ -375,10 +385,19 @@ if __name__ == "__main__":
                     # 'both_acc': both_correct_accuracy} 
 
         result, res_out, fps_out, res_targets, fps_targets, \
-            res_values, fps_values = evaluate_test_data(model, test_dl)
+            res_values, fps_values, unique_indices = evaluate_test_data(model, test_dl)
         
+        # unique_indices_arr = [val for k, val in unique_indices.items()]
+        bitrate_predictions = {}
+        print(f"First indices of unique values: {unique_indices}")
+
         res_values = torch.tensor(res_values)
         fps_values = torch.tensor(fps_values)
+
+        for k, val in unique_indices.items():
+            bitrate_predictions[k] = []
+            bitrate_predictions[k].append(res_values[val].item())
+            bitrate_predictions[k].append(fps_values[val].item())
 
         # print(f'test result \n {result}')
         # print(f'res_out \n {res_out}')
@@ -386,9 +405,10 @@ if __name__ == "__main__":
         # print(f'res_targets \n {res_targets}')
         # print(f'fps_targets \n {fps_targets}')
         print(f'res_values \n {(res_values)}')
-        # print(f'res_values \n {torch.unique(res_values)}')
+        print(f'res_values \n {torch.unique(res_values)}\n')
         print(f'fps_values \n {(fps_values)}')
-        # print(f'fps_values \n {torch.unique(fps_values)}')
+        print(f'fps_values \n {torch.unique(fps_values)}\n')
+        print(f'bitrate_predictions \n {bitrate_predictions}')
 
 
         if PLOT_TEST_RESULT:
