@@ -143,23 +143,23 @@ class NaturalSceneClassification(ImageClassificationBase):
     def __init__(self, num_framerates, num_resolutions):
         super().__init__()
         self.network = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size = 3, padding = 1), # output (64, 64, 32)
-            nn.ReLU(), # output (64, 64, 32)
-            nn.Conv2d(32,64, kernel_size = 3, stride = 1, padding = 1),  # output (64, 64, 64)
-            nn.ReLU(), # output (64, 64, 64)
-            nn.MaxPool2d(2,2), # (32, 32, 64)
+            nn.Conv2d(3, 32, kernel_size = 3, padding = 1),
+            nn.ReLU(), 
+            nn.Conv2d(32,64, kernel_size = 3, stride = 1, padding = 1),  
+            nn.ReLU(), 
+            nn.MaxPool2d(2,2), 
         
-            nn.Conv2d(64, 128, kernel_size = 3, stride = 1, padding = 1), # (32, 32, 128)
+            nn.Conv2d(64, 128, kernel_size = 3, stride = 1, padding = 1), 
             nn.ReLU(),
-            nn.Conv2d(128 ,128, kernel_size = 3, stride = 1, padding = 1), # (32, 32, 128)
-            nn.ReLU(),  # (32, 32, 128)
-            nn.MaxPool2d(2,2), # (16, 16, 128)
+            nn.Conv2d(128 ,128, kernel_size = 3, stride = 1, padding = 1), 
+            nn.ReLU(),  
+            nn.MaxPool2d(2,2), 
             
-            nn.Conv2d(128, 256, kernel_size = 3, stride = 1, padding = 1), # (16, 16, 256)
+            nn.Conv2d(128, 256, kernel_size = 3, stride = 1, padding = 1), 
             nn.ReLU(),
-            nn.Conv2d(256,256, kernel_size = 3, stride = 1, padding = 1), # (16, 16, 256)
+            nn.Conv2d(256,256, kernel_size = 3, stride = 1, padding = 1), 
             nn.ReLU(),
-            nn.MaxPool2d(2,2), # (8, 8, 256)
+            nn.MaxPool2d(2,2), 
             
             nn.Flatten(),
             nn.Linear(16384,1024), # output vector of size 1024 
