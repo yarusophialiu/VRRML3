@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 from PIL import Image
+from utils import *
 
 
 
@@ -15,32 +16,37 @@ res_map = {360: 0, 480: 1, 720: 2, 864: 3, 1080: 4}
 
 
 class CustomTransform:
-    def __init__(self, output_size):
+    def __init__(self, output_size, num_patches):
         # print(f'num_patches {num_patches}')
         self.output_size = output_size
-        self.num_patches = 2
+        self.num_patches = num_patches
         self.to_tensor = transforms.ToTensor()
 
     def __call__(self, image):
         patches = []
-        w, h = image.size
-        left_half = image.crop((0, 0, h, h))
-        right_half = image.crop((64, 0, w, h))
-        # left_half.show()
+        total_width, height = image.size
+        patch_width = total_width // 3
+        # show_patch(image)
 
-        patches.append(self.to_tensor(left_half))
-        patches.append(self.to_tensor(right_half))
-        # print(f'\n\n\npatches \n {patches}')
+        for i in range(self.num_patches):
+            left = i * patch_width
+            right = left + patch_width
+            patch = image.crop((left, 0, right, height))
+            # print(f'left, right {left, right}')
+            # show_patch(patch)
+            patches.append(self.to_tensor(patch))
+        
         patches = torch.cat(patches, dim=0)
         # print(f'patches {patches.size()} \n {patches}')
         return patches
     
 
 # dataset: handling batching, shuffling, and iterations over the dataset during training or inference
-class VideoDualPatchDataset(Dataset):
-    def __init__(self, directory, patch_size=((64, 64))):
+class ConsecutivePatchDataset(Dataset):
+    def __init__(self, directory, NUM_PATCH=1, patch_size=((64, 64))):
         self.root_directory = directory
         self.patch_size = patch_size
+        self.num_patch = NUM_PATCH
         self.samples = []  # To store tuples of (image path, label)
         labels = os.listdir(directory)
         # self.labels = [float(label) if float(label) % 1 != 0 else int(label) for label in self.labels]
@@ -48,7 +54,7 @@ class VideoDualPatchDataset(Dataset):
         self.res_targets = [int(label.split('x')[1]) for label in labels]
         # print(f'self.fps_targets {self.fps_targets}')
         # print(f'self.res_targets {self.res_targets}')
-        self.transform = CustomTransform(patch_size) 
+        self.transform = CustomTransform(patch_size, self.num_patch) 
 
         for label in labels: # label must be floats not integers
                 label_dir = os.path.join(directory, str(label))
@@ -87,7 +93,6 @@ class VideoDualPatchDataset(Dataset):
             image = self.transform(image)
             # print(f'image.size {image.size()}')
             # print(f'image \n {image}')
-
             # image.show()
 
         sample = {"image": image, "fps": fps, "bitrate": bitrate, "resolution": pixel, \
