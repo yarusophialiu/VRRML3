@@ -175,7 +175,10 @@ class NaturalSceneClassification(ImageClassificationBase):
         fps_resolution_bitrate = torch.stack([fps, bitrate], dim=1).float()  # Example way to combine fps and bitrate
         # print(f'fps_resolution_bitrate {fps_resolution_bitrate}')
         combined = torch.cat((features, fps_resolution_bitrate), dim=1)
-        combined = minMaxNormalizer(combined)
+        if NORMALIZATION:
+            combined = minMaxNormalizer(combined)
+        # print(f'\n\n\nnormalization {NORMALIZATION}')
+        
         # print(f'combined {combined.size()}\n')               
 
         x = self.fc_network(combined)
@@ -212,9 +215,16 @@ def evaluate_test_data(model, test_loader):
             resolution = batch["resolution"]
             # velocity = batch["velocity"]
         
-            # print(f'fps \n {fps}')
-            # print(f'bitrate \n {bitrate}')
-            # print(f'resolution \n {resolution}')
+            print(f'bitrate \n {bitrate}')
+
+            # arr = [30, 30, 30, 40, 40, 50, 50, 50]
+            # tensor = torch.tensor(arr)
+            unique_indices = {}
+
+            # Iterate over the tensor and populate the dictionary
+            for index, value in enumerate(bitrate.tolist()):
+                if value not in unique_indices:
+                    unique_indices[value] = index
 
             # TODO: convert labels into res_targets, fps_targets 
             res_targets = batch["res_targets"]
@@ -225,8 +235,19 @@ def evaluate_test_data(model, test_loader):
             total_loss = compute_weighted_loss(res_out, fps_out, res_targets, fps_targets)
             framerate_accuracy, resolution_accuracy, both_correct_accuracy = compute_accuracy(fps_out, res_out, fps_targets, res_targets)
 
+            fps = [30, 40, 50, 60, 70, 80, 90, 100, 110, 120]
+            resolution = [360, 480, 720, 864, 1080]
+
+            fps_idx = torch.argmax(fps_out, dim=1)
+            res_idx = torch.argmax(res_out, dim=1)
+
+            fps_values = [fps[idx] for idx in fps_idx]
+            res_values = [resolution[idx] for idx in res_idx]
+
+
             return {'val_loss': total_loss.detach(), 'res_acc': resolution_accuracy, 'fps_acc': framerate_accuracy, \
-                    'both_acc': both_correct_accuracy}, res_out, fps_out, res_targets, fps_targets
+                    'both_acc': both_correct_accuracy}, res_out, fps_out, res_targets, fps_targets, \
+                        res_values, fps_values, unique_indices
 
 
 def fit(epochs, lr, model, train_loader, val_loader, save_path, opt_func, SAVE=False):
@@ -276,22 +297,24 @@ def fit(epochs, lr, model, train_loader, val_loader, save_path, opt_func, SAVE=F
     
     return history
 
-# input image 64x64, concatednated decocded or reference patch
-# learn JOD valules for different fps and bitrate
+# input image 64x64, enlarged decocded OR reference patch
+# no resolution
 if __name__ == "__main__":
     data_directory = 'C:/Users/15142/Desktop/data/VRR-video-classification/'
     # data_directory = 'C:/Users/15142/Desktop/data/VRR-classification/'
-    data_train_directory = f'{data_directory}/train_dec_ref/train' 
-    data_test_directory = f'{data_directory}/test_dec_ref/test'
+    data_train_directory = f'{data_directory}/bistro-fast/train_dec_ref_bistro/train' 
+    # data_test_directory = f'{data_directory}/test_dec_ref_suntemple/test'
+    data_test_directory = f'{data_directory}/bistro-normal/test_consecutive_dec/test'
+
     SAVE_MODEL = False
     SAVE_MODEL_HALF_WAY = False
     START_TRAINIGN = False
-    TEST_EVAL = True
+    TEST_EVAL = False
     PLOT_TEST_RESULT = False
     SAVE_PLOT = True
     TEST_SINGLE_IMG = False
 
-    num_epochs = 60
+    num_epochs = 40
     lr = 0.001
     # opt_func = torch.optim.SGD
     opt_func = torch.optim.Adam
@@ -299,10 +322,14 @@ if __name__ == "__main__":
     val_size = 4096
 
     num_framerates, num_resolutions = 10, 5
+    TYPE = "decoded" # decoded, reference
+    NORMALIZATION = True
+    min_bitrate = 2000
+    max_bitrate = 6000
 
-    # step1 load data
-    dataset = VideoSinglePatchDataset(directory=data_train_directory) # len 27592
-    test_dataset = VideoSinglePatchDataset(directory=data_test_directory) 
+    # step1 load data 
+    dataset = VideoSinglePatchDataset(data_train_directory, TYPE, min_bitrate, max_bitrate) # len 27592
+    test_dataset = VideoSinglePatchDataset(data_test_directory, TYPE, min_bitrate, max_bitrate) 
     train_size = len(dataset) - val_size 
     print(f'total data {len(dataset)}, batch_size {batch_size}')
     print(f'train_size {train_size}, val_size {val_size}, test_size {len(test_dataset)}\n')
@@ -347,18 +374,19 @@ if __name__ == "__main__":
         history = fit(num_epochs, lr, model, train_dl, val_dl, model_path, opt_func, SAVE=SAVE_MODEL_HALF_WAY)
         
         if SAVE_MODEL:
-            torch.save(model.state_dict(), f'{model_path}/classification.pth')
+            torch.save(model.state_dict(), f'{model_path}/classification_{TYPE}.pth')
 
     if TEST_EVAL:
         model = NaturalSceneClassification(num_framerates, num_resolutions)
-        model_path = f'2024-05-05/14_26/classification_adam.pth'
+        # model_path = f'2024-05-05/20_14/classification_reference.pth'
+        model_path = f'2024-05-05/14_26/classification_ref_adam.pth'
         model.load_state_dict(torch.load(model_path))
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
         print(f'test_dataset {len(test_dataset)}')
         test_dl = DataLoader(test_dataset, len(test_dataset))
         if device.type == 'cuda':
-            print(f'Loading data to cuda...')
+            print(f'\nLoading data to cuda...')
             test_dl = DeviceDataLoader(test_dl, device)
             to_device(model, device)
 
@@ -366,12 +394,31 @@ if __name__ == "__main__":
         # {'val_loss': total_loss.detach(), 'res_acc': resolution_accuracy, 'fps_acc': framerate_accuracy, \
                     # 'both_acc': both_correct_accuracy} 
 
-        result, res_out, fps_out, res_targets, fps_targets = evaluate_test_data(model, test_dl)
-        print(f'test result \n {result}')
-        print(f'res_out \n {res_out}')
-        print(f'fps_out \n {fps_out}')
-        print(f'res_targets \n {res_targets}')
-        print(f'fps_targets \n {fps_targets}')
+        result, res_out, fps_out, res_targets, fps_targets, \
+            res_values, fps_values, unique_indices = evaluate_test_data(model, test_dl)
+        
+        # unique_indices_arr = [val for k, val in unique_indices.items()]
+        bitrate_predictions = {}
+        print(f"First indices of unique values: {unique_indices}")
+
+        res_values = torch.tensor(res_values)
+        fps_values = torch.tensor(fps_values)
+
+        for k, val in unique_indices.items():
+            bitrate_predictions[k] = []
+            bitrate_predictions[k].append(res_values[val].item())
+            bitrate_predictions[k].append(fps_values[val].item())
+
+        print(f'test result \n {result}\n')
+        # print(f'res_out \n {res_out}')
+        # print(f'fps_out \n {fps_out}')
+        # print(f'res_targets \n {res_targets}')
+        # print(f'fps_targets \n {fps_targets}')
+        # print(f'res_values \n {(res_values)}')
+        # print(f'res_values \n {torch.unique(res_values)}\n')
+        # print(f'fps_values \n {(fps_values)}')
+        # print(f'fps_values \n {torch.unique(fps_values)}\n')
+        print(f'bitrate_predictions \n {bitrate_predictions}')
 
 
         if PLOT_TEST_RESULT:
