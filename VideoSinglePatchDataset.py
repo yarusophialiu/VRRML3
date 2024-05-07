@@ -39,7 +39,7 @@ class CustomTransform:
 
 # dataset: handling batching, shuffling, and iterations over the dataset during training or inference
 class VideoSinglePatchDataset(Dataset):
-    def __init__(self, directory, TYPE, patch_size=((64, 64)), VELOCITY=False):
+    def __init__(self, directory, TYPE, min_bitrate, max_bitrate, patch_size=((64, 64)), VELOCITY=False):
         self.root_directory = directory
         self.patch_size = patch_size
         self.velocity = VELOCITY
@@ -48,6 +48,17 @@ class VideoSinglePatchDataset(Dataset):
 
         self.fps_targets = [int(label.split('x')[0]) for label in labels]
         self.res_targets = [int(label.split('x')[1]) for label in labels]
+
+        self.min_fps = 30
+        self.max_fps = 120
+        self.min_res = 360
+        self.max_res = 1080
+
+        self.min_bitrate = min_bitrate
+        self.max_bitrate = max_bitrate
+
+        # print(f'TYPE {TYPE}')
+        # print(f'self.min_bitrate, self.max_bitrate {self.min_bitrate, self.max_bitrate}')
 
         self.transform = transforms.Compose([
                     CustomTransform(patch_size, TYPE) ,
@@ -69,6 +80,11 @@ class VideoSinglePatchDataset(Dataset):
     def __len__(self):
         return len(self.samples)
     
+    def normalize(self, sample, min_vals, max_vals):
+        # print(f'val, min_vals, max_vals {sample, min_vals, max_vals}')
+        sample = (sample - min_vals) / (max_vals - min_vals)
+        return round(sample, 3)
+    
     # load individual data sample, apply transformations, 
     def __getitem__(self, idx):
         img_path, label = self.samples[idx]
@@ -86,17 +102,23 @@ class VideoSinglePatchDataset(Dataset):
             bitrate = int(parts[-1].split('.')[0])  # Remove .png and convert to integer
         else:
             bitrate = int(parts[3])  
-
             velocity = int(parts[-1].split('.')[0]) / 10000  # Remove .png and convert to integer
 
-        image = Image.open(img_path)
 
+        fps = self.normalize(fps, self.min_fps, self.max_fps)
+        # print(f'fps {fps}\n')
+        pixel = self.normalize(pixel, self.min_res, self.max_res)
+        # print(f'pixel {pixel}\n')
+        bitrate = self.normalize(bitrate, self.min_bitrate, self.max_bitrate)
+        # print(f'bitrate {bitrate}\n')
+
+
+
+        image = Image.open(img_path)
         if self.transform:
             image = self.transform(image)
             # print(f'image.size {image.size()}')
-            # print(f'image \n {image}')
             # image.show()
-
         sample = {"image": image, "fps": fps, "bitrate": bitrate, "resolution": pixel, \
                   "fps_targets": fps_map[fps_targets], "res_targets": res_map[res_targets]}
         
