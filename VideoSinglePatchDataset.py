@@ -29,11 +29,7 @@ class CustomTransform:
 
         # left_half.show()
         # right_half.show()
-
-        # patches.append(self.to_tensor(left_half) )
-        # patches.append(self.to_tensor(right_half) )
-        # # print(f'\n\n\npatches \n {patches}')
-        # patches = torch.cat(patches, dim=0)
+        # print(f'self.TYPE {self.TYPE}')
         # print(f'patches {patches.size()} \n {patches}')
         if self.TYPE == 'decoded': 
             return left_half 
@@ -43,17 +39,16 @@ class CustomTransform:
 
 # dataset: handling batching, shuffling, and iterations over the dataset during training or inference
 class VideoSinglePatchDataset(Dataset):
-    def __init__(self, directory, TYPE, patch_size=((64, 64))):
+    def __init__(self, directory, TYPE, patch_size=((64, 64)), VELOCITY=False):
         self.root_directory = directory
         self.patch_size = patch_size
+        self.velocity = VELOCITY
         self.samples = []  # To store tuples of (image path, label)
         labels = os.listdir(directory)
-        # self.labels = [float(label) if float(label) % 1 != 0 else int(label) for label in self.labels]
+
         self.fps_targets = [int(label.split('x')[0]) for label in labels]
         self.res_targets = [int(label.split('x')[1]) for label in labels]
-        # print(f'self.fps_targets {self.fps_targets}')
-        # print(f'self.res_targets {self.res_targets}')
-        # self.transform = CustomTransform(patch_size, TYPE='reference') 
+
         self.transform = transforms.Compose([
                     CustomTransform(patch_size, TYPE) ,
                     transforms.Resize((64, 64)),  # Resize images to 64x64
@@ -61,14 +56,12 @@ class VideoSinglePatchDataset(Dataset):
                 ])
                        
 
-        for label in labels: # label must be floats not integers
+        for label in labels: 
                 label_dir = os.path.join(directory, str(label))
                 # print(f'label_dir {label_dir}')
                 for root, _, filenames in os.walk(label_dir):
                     for filename in filenames:
                         file_path = os.path.join(root, filename)
-                        # np.concate()
-                        # torch.cat((file_path, int(label.split('x')[0])))   
                         self.samples.append((file_path, label))   
         # print(f'self.samples {self.samples}\n')
 
@@ -84,14 +77,18 @@ class VideoSinglePatchDataset(Dataset):
         fps_targets = int(label.split('x')[1])
         res_targets = int(label.split('x')[0])
 
-        filename = os.path.basename(img_path) # 00a0f6e8_50_864_2000
+        filename = os.path.basename(img_path) # 00a0f6e8_50_864_2000.png or 00cb4b2e_40_864_2000_776102.png
         parts = filename.split('_')     
         fps = float(parts[1])
         pixel = int(parts[2])  
-        bitrate = int(parts[-1].split('.')[0])  # Remove .png and convert to integer
-        # velocity = int(parts[-1].split('.')[0]) / 10000  # Remove .png and convert to integer
+        velocity = 0
+        if not self.velocity:
+            bitrate = int(parts[-1].split('.')[0])  # Remove .png and convert to integer
+        else:
+            bitrate = int(parts[3])  
 
-        # Load the image
+            velocity = int(parts[-1].split('.')[0]) / 10000  # Remove .png and convert to integer
+
         image = Image.open(img_path)
 
         if self.transform:
@@ -102,4 +99,11 @@ class VideoSinglePatchDataset(Dataset):
 
         sample = {"image": image, "fps": fps, "bitrate": bitrate, "resolution": pixel, \
                   "fps_targets": fps_map[fps_targets], "res_targets": res_map[res_targets]}
-        return sample
+        
+        # print(f'self.velocity {self.velocity}')
+        if self.velocity:
+            sample['velocity'] = velocity
+            # print(f'velocity {velocity}')
+            return sample
+        else:
+            return sample
